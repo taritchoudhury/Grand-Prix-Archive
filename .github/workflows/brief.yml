@@ -1,0 +1,27 @@
+name: Race brief
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Write a brief if a new race has landed
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/brief.mjs
+      - name: Commit it
+        run: |
+          git config user.name "brief-bot"
+          git config user.email "actions@users.noreply.github.com"
+                    mkdir -p briefs
+          git add briefs
+          git diff --staged --quiet || git commit -m "Race brief"
+          git push
