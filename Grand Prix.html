@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Grand Prix Archive</title>
+<meta name="description" content="Every Formula 1 race, driver and constructor since 1950, with timing analysis.">
+<style>
+  :root{
+    --ink:#0E1219; --panel:#161C26; --panel2:#1D2531; --line:#28323F;
+    --text:#E9ECF1; --muted:#8B98A9; --dim:#5D6875;
+    --purple:#B23FE0; --green:#2FD37A; --red:#E5484D; --amber:#E8A33D; --steel:#6E9BD9;
+    --soft:#E5484D; --medium:#E8C33D; --hard:#DDE3EA; --inter:#2FD37A; --wet:#3B82F6;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--text);
+    font:15px/1.5 "Helvetica Neue",Inter,system-ui,-apple-system,sans-serif}
+  .bar{position:sticky;top:0;z-index:10;display:flex;gap:10px;align-items:center;
+    flex-wrap:wrap;padding:12px 16px;background:var(--ink);border-bottom:1px solid var(--line)}
+  .brand{font-weight:600;letter-spacing:-.01em}
+  .spacer{flex:1}
+  .nav{display:flex;gap:2px}
+  .nav button{font-size:13px;padding:6px 12px;border-radius:4px;cursor:pointer;
+    background:transparent;color:var(--muted);border:1px solid transparent;font-family:inherit}
+  .nav button[aria-current="true"]{background:var(--panel2);color:var(--text);border-color:var(--line)}
+  select{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:4px;padding:6px 8px;font-size:14px;font-family:inherit;max-width:270px}
+  main{max-width:1180px;margin:0 auto;padding:24px 16px}
+  h1{font-size:34px;line-height:1.1;margin:0;letter-spacing:-.02em}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:8px}
+  .sub{color:var(--muted);font-size:14px;margin-top:8px}
+  .tiles{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+  .tile{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:4px;padding:12px 16px}
+  .tile .k{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .tile .v{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .s{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:4px}
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-bottom:16px}
+  .panel > h2{font-size:14px;margin:0;padding:12px 16px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-weight:600}
+  .panel > h2 .note{font-size:12px;color:var(--dim);font-weight:400;text-align:right}
+  .body{padding:16px}
+  .empty{color:var(--dim);text-align:center;padding:24px 8px;font-size:14px}
+  .err{color:var(--red)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-weight:400;font-size:12px;color:var(--muted);
+    padding-bottom:8px;border-bottom:1px solid var(--line)}
+  td{padding:6px 0;border-bottom:1px solid var(--ink)}
+  td.num{font-family:var(--mono);width:34px;color:var(--muted)}
+  td.small{font-size:12px;color:var(--muted)}
+  .fl{color:var(--purple);font-size:12px;margin-left:6px}
+  .dnf{color:var(--dim)}
+  .tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+  .tab{font-size:12px;padding:6px 12px;border-radius:4px;cursor:pointer;background:transparent;
+    color:var(--muted);border:1px solid transparent;font-family:inherit}
+  .tab[aria-selected="true"]{background:var(--panel2);color:var(--text);border-color:var(--line)}
+  .btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    padding:8px 16px;font-size:14px;border-radius:4px;cursor:pointer;font-family:inherit}
+  .scroll{max-height:440px;overflow-y:auto}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:12px}
+  .swatch{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:5px}
+  .headline{font-size:19px;line-height:1.35;max-width:62ch;margin:0 0 16px}
+  .blocks{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .blocks h3{font-size:12px;color:var(--steel);margin:0 0 4px;font-weight:400}
+  .blocks p{font-size:14px;color:var(--muted);line-height:1.6;margin:0;max-width:60ch}
+  .caption{font-size:12px;color:var(--dim);margin:12px 0 0;max-width:74ch;line-height:1.6}
+  footer{font-size:12px;color:var(--dim);line-height:1.7;margin-top:8px;padding:20px 0 48px;
+    border-top:1px solid var(--line);display:grid;gap:24px;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  footer h5{margin:0 0 6px;font-size:12px;color:var(--muted);font-weight:600}
+  footer .credit{grid-column:1/-1;border-top:1px solid var(--line);padding-top:16px;
+    margin-top:4px;color:var(--muted)}
+  footer .credit a{color:var(--steel);text-decoration:none}
+  footer .credit a:hover{text-decoration:underline}
+  footer p{margin:0}
+  footer a{color:var(--muted)}
+  .calrow{display:flex;gap:14px;align-items:baseline;padding:10px 0;
+    border-bottom:1px solid var(--ink);flex-wrap:wrap;cursor:pointer}
+  .calrow:hover{background:var(--panel2)}
+  .caldate{font-family:var(--mono);font-size:12px;color:var(--muted);width:104px;flex:none}
+  .calnext{color:var(--green)}
+  .calpast .calname{color:var(--muted)}
+  .calname{flex:1;min-width:180px}
+  .sessions{display:grid;gap:8px 20px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    padding:10px 0 14px 118px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .rcrow{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--ink);font-size:13px}
+  .rclap{font-family:var(--mono);color:var(--dim);width:44px;flex:none}
+  .era{border-left:2px solid var(--line);padding:0 0 0 14px;margin:0 0 16px}
+  .era h4{margin:0 0 2px;font-size:14px}
+  .era .yrs{font-family:var(--mono);font-size:11px;color:var(--steel)}
+  .era p{margin:4px 0 0;font-size:13px;color:var(--muted);max-width:70ch;line-height:1.6}
+  a.lnk{color:var(--steel);text-decoration:none;cursor:pointer}
+  a.lnk:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="brand">Grand Prix Archive</span>
+  <span class="nav" id="nav">
+    <button data-view="race" aria-current="true">Races</button>
+    <button data-view="calendar">Calendar</button>
+    <button data-view="driver">Drivers</button>
+    <button data-view="team">Teams</button>
+    <button data-view="circuit">Circuits</button>
+    <button data-view="learn">Learn</button>
+  </span>
+  <span class="spacer"></span>
+  <span id="controls"></span>
+</div>
+
+<main id="main"><div class="empty">Loading…</div></main>
+
+<script>
+const API="https://api.jolpi.ca/ergast/f1";
+const OF1="https://api.openf1.org/v1";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const COMPOUND={SOFT:"var(--soft)",MEDIUM:"var(--medium)",HARD:"var(--hard)",
+  INTERMEDIATE:"var(--inter)",WET:"var(--wet)"};
+const cColour=c=>COMPOUND[(c||"").toUpperCase()]||"var(--dim)";
+const CUR=["var(--steel)","var(--green)","var(--amber)","var(--purple)","var(--red)","#4CC9C0"];
+
+let S={ view:"race", season:null, round:null, races:[], race:null, results:[],
+        drivers:null, constructors:null, tab:"drivers",
+        sessionKey:null, stints:null, pits:null, of1drivers:null, laps:null,
+        driverId:null, teamId:null, circuitId:null, chapter:0,
+        allDrivers:null, allTeams:null, allCircuits:null,
+        calSeason:null, calMonth:'all', calRaces:[] };
+
+async function api(p){ const r=await fetch(API+p); if(!r.ok) throw new Error("Data source returned "+r.status); return r.json(); }
+async function of1(p){ const r=await fetch(OF1+p); if(!r.ok) throw new Error("Timing source returned "+r.status); return r.json(); }
+async function count(p){ try{ const d=await api(p+"?limit=1"); return parseInt(d.MRData.total,10)||0; }catch(e){ return null; } }
+const nOr=v=>v==null?"\u2014":v;
+async function loadAll(path,table,list){
+  let out=[],off=0,total=1,guard=0;
+  while(off<total&&guard<12){
+    const d=await api(`${path}?limit=100&offset=${off}`);
+    total=parseInt(d.MRData.total,10)||0;
+    out=out.concat(d.MRData[table][list]||[]);
+    off+=100; guard++;
+  }
+  return out;
+}
+async function seasonsOf(kind,id){
+  const d=await api(`/${kind}/${id}/seasons.json?limit=100`);
+  return (d.MRData.SeasonTable.Seasons||[]).map(x=>+x.season).sort((a,b)=>a-b);
+}
+async function inChunks(items,n,fn){
+  const out=[];
+  for(let i=0;i<items.length;i+=n) out.push.apply(out, await Promise.all(items.slice(i,i+n).map(fn)));
+  return out;
+}
+const mmss=s=>s==null||!isFinite(s)?"—":Math.floor(s/60)+"m "+String(Math.round(s%60)).padStart(2,"0")+"s";
+const drop=id=>{ const el=$(id); if(el&&el.closest(".panel")) el.closest(".panel").remove(); };
+
+/* ============ shared chart: value per season ============ */
+
+function seasonChart(rows, key, opts){
+  opts=opts||{};
+  const pts=rows.filter(r=>r[key]!=null && isFinite(r[key]));
+  if(pts.length<2) return "";
+  const invert=!!opts.invert;
+  const vals=pts.map(r=>+r[key]);
+  const lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals);
+  const W=720,H=230,mL=44,mB=26,mT=12,mR=12;
+  const px=i=>mL+(pts.length<2?0:i*(W-mL-mR)/(pts.length-1));
+  const py=v=>{ const t=(v-lo)/((hi-lo)||1); return mT+(invert?t:1-t)*(H-mT-mB); };
+  let g="";
+  for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, yy=py(v);
+    g+=`<line x1="${mL}" y1="${yy}" x2="${W-mR}" y2="${yy}" stroke="var(--line)"/>
+      <text x="${mL-6}" y="${yy+3}" text-anchor="end" font-size="10" fill="var(--muted)"
+        font-family="var(--mono)">${opts.fmt?opts.fmt(v):Math.round(v)}</text>`; }
+  g+=`<polyline fill="none" stroke="${opts.colour||"var(--steel)"}" stroke-width="1.8"
+    points="${pts.map((r,i)=>px(i)+","+py(+r[key])).join(" ")}"/>`;
+  pts.forEach((r,i)=>{ g+=`<circle cx="${px(i)}" cy="${py(+r[key])}" r="2.6"
+    fill="${opts.colour||"var(--steel)"}"><title>${esc(r.season+": "+(opts.tip?opts.tip(r):r[key]))}</title></circle>`; });
+  pts.forEach((r,i)=>{ if(pts.length<=14||i%Math.ceil(pts.length/14)===0)
+    g+=`<text x="${px(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)"
+      font-family="var(--mono)">${String(r.season).slice(2)}</text>`; });
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%"
+    style="min-width:520px;display:block">${g}</svg></div>`;
+}
+
+/* ================= RACE VIEW ================= */
+
+function tiles(){
+  const rs=S.results, win=rs[0];
+  const pole=rs.find(r=>r.grid==="1");
+  const fast=rs.find(r=>r.FastestLap&&r.FastestLap.rank==="1");
+  let mv=null;
+  rs.forEach(r=>{ if(!parseInt(r.positionText,10))return; const g=parseInt(r.grid,10);
+    if(!g)return; const gain=g-parseInt(r.position,10); if(!mv||gain>mv.gain) mv={gain,r}; });
+  const t=(k,v,s,c)=>`<div class="tile"><div class="k">${k}</div>
+    <div class="v"${c?` style="color:${c}"`:""}>${esc(v)}</div><div class="s">${esc(s||"")}</div></div>`;
+  return `<div class="tiles">
+    ${t("Winner",win?win.Driver.givenName+" "+win.Driver.familyName:"Not recorded",win&&win.Constructor.name)}
+    ${t("Pole",pole?pole.Driver.givenName+" "+pole.Driver.familyName:"Not recorded",pole?"finished P"+pole.positionText:"")}
+    ${t("Fastest lap",fast?fast.Driver.familyName:"Not on record",
+        fast?fast.FastestLap.Time.time:"logged from 2004",fast?"var(--purple)":null)}
+    ${t("Biggest climb",mv?mv.r.Driver.familyName:"—",
+        mv?"P"+mv.r.grid+" \u2192 P"+mv.r.position:"",mv&&mv.gain>0?"var(--green)":null)}</div>`;
+}
+
+function ladder(){
+  const rs=S.results; if(!rs.length) return `<div class="empty">No classification recorded.</div>`;
+  const n=rs.length,rowH=17,pad=22,h=n*rowH+pad*2,L=74,R=326,mid=(L+R)/2;
+  const y=p=>pad+(p-0.5)*rowH;
+  let out="",cl=0,ret=0;
+  rs.forEach(r=>{
+    let g=parseInt(r.grid,10)||n;
+    const isOut=!parseInt(r.positionText,10);
+    const f=parseInt(r.position,10)||n;
+    if(isOut){ret++;}else{cl++;}
+    const d=g-f;
+    const col=isOut?"var(--red)":d>0?"var(--green)":d<0?"var(--amber)":"var(--dim)";
+    const code=r.Driver.code||r.Driver.familyName.slice(0,3).toUpperCase();
+    const y1=y(g),y2=y(f);
+    out+=`<path d="M ${L+8} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${R-8} ${y2}" fill="none"
+      stroke="${col}" stroke-width="${isOut?1:1.6}" stroke-opacity="${isOut?.45:.85}"${isOut?' stroke-dasharray="3 3"':""}/>
+      <text x="${L}" y="${y1+3.5}" text-anchor="end" font-size="10.5" fill="var(--muted)">${g}</text>
+      <text x="${R}" y="${y2+3.5}" font-size="10.5" fill="${isOut?"var(--dim)":"var(--text)"}">${isOut?"—":f} ${esc(code)}</text>`;
+  });
+  return `<div style="overflow-x:auto"><svg width="400" height="${h}" style="min-width:400px;font-family:var(--mono)">
+    <text x="${L}" y="13" text-anchor="end" font-size="10" fill="var(--muted)">started</text>
+    <text x="${R}" y="13" font-size="10" fill="var(--muted)">finished</text>${out}</svg></div>
+    <div class="legend"><span><span class="swatch" style="background:var(--green)"></span>gained</span>
+    <span><span class="swatch" style="background:var(--amber)"></span>lost</span>
+    <span><span class="swatch" style="background:var(--red)"></span>retired</span>
+    <span style="font-family:var(--mono);color:var(--dim)">${cl} classified · ${ret} out</span></div>`;
+}
+
+function standings(){
+  const rows=S.tab==="drivers"?S.drivers:S.constructors;
+  const tab=(k,l)=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-tab="${k}">${l}</button>`;
+  let inner;
+  if(!rows||!rows.length){
+    inner=`<div class="empty">${S.tab==="constructors"
+      ?"The constructors' title didn't exist until 1958.":"No standings recorded."}</div>`;
+  }else{
+    inner=`<div class="scroll"><table><tbody>`+rows.slice(0,22).map(function(s,i){
+      const isD=!!s.Driver;
+      const name=isD?s.Driver.givenName+" "+s.Driver.familyName:s.Constructor.name;
+      const id=isD?s.Driver.driverId:s.Constructor.constructorId;
+      const sub=isD?(s.Constructors[0]||{}).name:s.wins+" wins";
+      return `<tr><td class="num" style="color:${i<3?"var(--text)":"var(--dim)"}">${s.position}</td>
+        <td><a class="lnk" data-go="${isD?"driver":"team"}" data-id="${esc(id)}">${esc(name)}</a>
+        <span style="color:var(--dim);font-size:12px">${esc(sub||"")}</span></td>
+        <td style="font-family:var(--mono);text-align:right;width:54px">${s.points}</td></tr>`;
+    }).join("")+`</tbody></table></div>`;
+  }
+  return `<div class="tabs" role="tablist">${tab("drivers","Drivers")}${tab("constructors","Constructors")}</div>${inner}`;
+}
+
+function classification(){
+  const rs=S.results; if(!rs.length) return `<div class="empty">No classification recorded.</div>`;
+  return `<div style="overflow-x:auto"><table>
+    <thead><tr><th></th><th>Driver</th><th>Team</th><th>Grid</th><th>Laps</th><th>Result</th><th>Pts</th></tr></thead>
+    <tbody>`+rs.map(function(r){
+      const out=!parseInt(r.positionText,10);
+      const fl=r.FastestLap&&r.FastestLap.rank==="1";
+      return `<tr><td class="num" style="color:${out?"var(--dim)":"var(--text)"}">${out?"—":r.position}</td>
+        <td class="${out?"dnf":""}"><a class="lnk" data-go="driver" data-id="${esc(r.Driver.driverId)}">${
+          esc(r.Driver.givenName+" "+r.Driver.familyName)}</a>${fl?'<span class="fl">FL</span>':""}</td>
+        <td class="small"><a class="lnk" data-go="team" data-id="${esc(r.Constructor.constructorId)}">${
+          esc(r.Constructor.name)}</a></td>
+        <td class="num">${r.grid==="0"?"PL":r.grid}</td><td class="num">${r.laps}</td>
+        <td class="small" style="font-family:var(--mono);${out?"color:var(--red)":""}">${esc(r.Time?r.Time.time:r.status)}</td>
+        <td class="num" style="color:${parseFloat(r.points)>0?"var(--text)":"var(--dim)"}">${r.points}</td></tr>`;
+    }).join("")+`</tbody></table></div>`;
+}
+
+async function findSession(){
+  const d=await of1(`/sessions?year=${S.season}&session_type=Race`);
+  const t=S.race.date;
+  let hit=d.find(s=>(s.date_start||"").slice(0,10)===t);
+  if(!hit) hit=d.find(s=>Math.abs(new Date(s.date_start)-new Date(t))<36*3600*1000);
+  return hit?hit.session_key:null;
+}
+
+function stintPanel(){
+  if(!S.stints||!S.stints.length) return null;
+  const byNum={}; (S.of1drivers||[]).forEach(d=>byNum[d.driver_number]=d);
+  const lapSecs={};
+  if(S.laps) S.laps.forEach(l=>{ if(l.lap_duration){
+    if(!lapSecs[l.driver_number]) lapSecs[l.driver_number]={};
+    lapSecs[l.driver_number][l.lap_number]=l.lap_duration; } });
+  const order=S.results.map(r=>parseInt(r.number,10)).filter(Boolean);
+  const nums=Array.from(new Set(S.stints.map(s=>s.driver_number)))
+    .sort(function(a,b){ const ia=order.indexOf(a),ib=order.indexOf(b);
+      return (ia<0?99:ia)-(ib<0?99:ib); });
+  const maxLap=Math.max.apply(null,S.stints.map(s=>s.lap_end||0));
+  if(!isFinite(maxLap)||maxLap<=0) return null;
+  const W=640,labelW=58,barH=15,gap=6,top=20;
+  const x=lap=>labelW+(lap/maxLap)*(W-labelW-8);
+  const H=top+nums.length*(barH+gap);
+  let svg="";
+  for(let l=0;l<=maxLap;l+=(maxLap>50?10:5))
+    svg+=`<line x1="${x(l)}" y1="${top-6}" x2="${x(l)}" y2="${H-gap}" stroke="var(--line)"/>
+      <text x="${x(l)}" y="${top-10}" text-anchor="middle" font-size="9" fill="var(--muted)"
+        font-family="var(--mono)">${l}</text>`;
+  nums.forEach(function(num,i){
+    const y=top+i*(barH+gap), dv=byNum[num]||{}, code=dv.name_acronym||num;
+    svg+=`<text x="${labelW-8}" y="${y+barH-4}" text-anchor="end" font-size="10.5"
+      fill="var(--text)" font-family="var(--mono)">${esc(code)}</text>`;
+    S.stints.filter(s=>s.driver_number===num).forEach(function(s){
+      const x1=x(Math.max(0,(s.lap_start||1)-1)), x2=x(s.lap_end||s.lap_start||1);
+      const laps=(s.lap_end||0)-(s.lap_start||0)+1;
+      const c=(s.compound||"?").toUpperCase();
+      let mins=null;
+      if(lapSecs[num]){ let tot=0,seen=0;
+        for(let l=s.lap_start;l<=s.lap_end;l++){ if(lapSecs[num][l]){tot+=lapSecs[num][l];seen++;} }
+        if(seen>laps*0.5) mins=tot; }
+      const tip=`${code} · ${c} · laps ${s.lap_start}\u2013${s.lap_end} (${laps} laps`
+        +(mins!=null?`, ${mmss(mins)}`:"")
+        +(s.tyre_age_at_start?`, fitted with ${s.tyre_age_at_start} laps already on them`:", fresh set")+")";
+      svg+=`<rect x="${x1}" y="${y}" width="${Math.max(2,x2-x1)}" height="${barH}" rx="2"
+        fill="${cColour(c)}" fill-opacity="0.9"><title>${esc(tip)}</title></rect>`;
+      if(x2-x1>26) svg+=`<text x="${(x1+x2)/2}" y="${y+barH-4}" text-anchor="middle" font-size="9"
+        fill="#0E1219" font-family="var(--mono)" pointer-events="none">${laps}</text>`;
+    });
+  });
+  const used=Array.from(new Set(S.stints.map(s=>(s.compound||"").toUpperCase()))).filter(Boolean);
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%"
+      style="min-width:560px;display:block">${svg}</svg></div>
+    <div class="legend">${used.map(c=>`<span><span class="swatch"
+      style="background:${cColour(c)}"></span>${esc(c.charAt(0)+c.slice(1).toLowerCase())}</span>`).join("")}</div>
+    <p class="caption">Each bar is one stint, coloured by compound; the number inside is how many laps
+      that set covered. Hover for the lap range, elapsed time, and whether the tyre went on fresh or
+      already scrubbed — a set with laps on it behaves very differently from a new one.
+      ${S.laps?"":" Load the lap analysis below to add stint durations in minutes."}</p>`;
+}
+
+function pitPanel(){
+  if(!S.pits||!S.pits.length) return null;
+  const rows=S.pits.slice().sort((a,b)=>(a.dur||1e9)-(b.dur||1e9));
+  const best=rows[0]?rows[0].dur:null;
+  return `<div class="scroll"><table>
+    <thead><tr><th>Driver</th><th>Lap</th><th>Stationary</th><th>vs best</th></tr></thead><tbody>`
+    +rows.map(function(p){ const d=(p.dur!=null&&best!=null)?(p.dur-best):null;
+      return `<tr><td>${esc(p.name)}</td><td class="num">${p.lap!=null?p.lap:"—"}</td>
+        <td class="num" style="color:var(--text);width:72px">${p.dur!=null?p.dur.toFixed(2)+"s":"—"}</td>
+        <td class="num" style="color:${d===0?"var(--green)":"var(--dim)"};width:66px">${
+          d==null?"—":d===0?"best":"+"+d.toFixed(2)}</td></tr>`;
+    }).join("")+`</tbody></table></div>
+    <p class="caption">Stationary time only. It excludes the pit lane delta, so even a perfect stop
+      costs roughly 20 seconds of race time. Two seconds off the best is often the difference between
+      holding a position and losing it.</p>`;
+}
+
+async function loadLaps(){
+  const box=$("laps"); if(!box) return;
+  box.innerHTML=`<div class="empty">Pulling every lap of the race…</div>`;
+  try{
+    if(!S.sessionKey) throw new Error("No timing session available for this race.");
+    S.laps=await of1(`/laps?session_key=${S.sessionKey}`);
+    box.innerHTML=lapTrace()||`<div class="empty">No usable lap times.</div>`;
+    const sp=stintPanel(); if(sp&&$("stints")) $("stints").innerHTML=sp;
+  }catch(e){ box.innerHTML=`<div class="empty err">${esc(e.message)}</div>`; }
+}
+
+function lapTrace(){
+  if(!S.laps||!S.laps.length) return null;
+  const byNum={}; (S.of1drivers||[]).forEach(d=>byNum[d.driver_number]=d);
+  const top=S.results.slice(0,5).map(r=>parseInt(r.number,10)).filter(Boolean);
+  const series=top.map(function(num){ return { num,
+    pts:S.laps.filter(l=>l.driver_number===num&&l.lap_duration)
+      .map(l=>({x:l.lap_number,y:l.lap_duration})).sort((a,b)=>a.x-b.x) };
+  }).filter(s=>s.pts.length);
+  if(!series.length) return null;
+  const all=series.reduce((a,s)=>a.concat(s.pts.map(p=>p.y)),[]).sort((a,b)=>a-b);
+  const med=all[Math.floor(all.length/2)], lo=all[0], hi=Math.min(all[all.length-1],med*1.35);
+  const maxLap=Math.max.apply(null,series.reduce((a,s)=>a.concat(s.pts.map(p=>p.x)),[]));
+  const W=720,H=280,mL=54,mB=26,mT=10,mR=10;
+  const px=l=>mL+(l/maxLap)*(W-mL-mR);
+  const py=v=>mT+(1-(Math.min(v,hi)-lo)/((hi-lo)||1))*(H-mT-mB);
+  let g="";
+  for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, yy=py(v);
+    g+=`<line x1="${mL}" y1="${yy}" x2="${W-mR}" y2="${yy}" stroke="var(--line)"/>
+      <text x="${mL-6}" y="${yy+3}" text-anchor="end" font-size="10" fill="var(--muted)"
+        font-family="var(--mono)">${v.toFixed(1)}s</text>`; }
+  series.forEach(function(s,i){ g+=`<polyline fill="none" stroke="${CUR[i%5]}" stroke-width="1.4"
+    stroke-opacity=".9" points="${s.pts.map(p=>px(p.x)+","+py(p.y)).join(" ")}"/>`; });
+  for(let l=0;l<=maxLap;l+=(maxLap>50?10:5))
+    g+=`<text x="${px(l)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)"
+      font-family="var(--mono)">${l}</text>`;
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%"
+      style="min-width:560px;display:block">${g}</svg></div>
+    <div class="legend">${series.map(function(s,i){ const d=byNum[s.num];
+      return `<span><span class="swatch" style="background:${CUR[i%5]}"></span>${
+        esc(d?d.name_acronym:s.num)}</span>`; }).join("")}</div>
+    <p class="caption">Top five finishers. Times slower than ${hi.toFixed(1)}s are clipped so pit laps
+      and safety car periods don't flatten the scale. Upward drift within a stint is degradation;
+      the spike is the pit lap; the step down after it is fresh rubber.</p>`;
+}
+
+function weatherPanel(w){
+  if(!w||!w.length) return null;
+  const avg=k=>{ const v=w.map(x=>x[k]).filter(x=>x!=null);
+    return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; };
+  if(avg("air_temperature")==null&&avg("track_temperature")==null) return null;
+  const f=(n,u)=>n==null?"—":n.toFixed(1)+u;
+  const t=(k,v)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  return `<div class="tiles" style="margin:0">
+    ${t("Air",f(avg("air_temperature"),"°C"))}${t("Track",f(avg("track_temperature"),"°C"))}
+    ${t("Humidity",f(avg("humidity"),"%"))}${t("Wind",f(avg("wind_speed")," m/s"))}
+    ${t("Rain",w.some(x=>x.rainfall)?"Yes":"Dry")}</div>
+    <p class="caption">Session averages. Track temperature matters more than air — it drives how fast
+      a compound reaches its working window, and a 10°C swing between qualifying and the race can
+      invalidate a whole strategy.</p>`;
+}
+
+function racePanel(rc){
+  const keep=(rc||[]).filter(m=>m.message);
+  if(!keep.length) return null;
+  return `<div class="scroll">${keep.map(function(m){
+    const txt=((m.flag||"")+" "+(m.message||"")).toUpperCase();
+    const col=/RED/.test(m.flag||"")?"var(--red)":/YELLOW|SAFETY|VSC/.test(txt)?"var(--amber)":"var(--muted)";
+    return `<div class="rcrow"><span class="rclap">${m.lap_number!=null?"L"+m.lap_number:"—"}</span>
+      <span style="color:${col}">${esc(m.message)}</span></div>`; }).join("")}</div>
+    <p class="caption">Every flag, safety car and stewards' note. Cross-reference the lap numbers
+      against the stint chart — a caution period roughly halves the cost of a pit stop, which is why
+      most strategy calls happen inside these windows.</p>`;
+}
+
+async function loadBrief(){
+  try{
+    const r=await fetch(`./briefs/${S.season}-${S.round}.json`);
+    if(!r.ok) throw new Error("none");
+    const b=await r.json();
+    const blk=(h,t)=>t?`<div><h3>${h}</h3><p>${esc(t)}</p></div>`:"";
+    if($("brief")) $("brief").innerHTML=`<p class="headline">${esc(b.headline||"")}</p>
+      <div class="blocks">${blk("How it unfolded",b.whatHappened)}${blk("The fight that mattered",b.keyBattle)}
+      ${blk("What it did to the title race",b.championshipImpact)}${blk("Worth noticing",b.watchThis)}</div>`;
+  }catch(e){ drop("brief"); }
+}
+
+async function seasonCurve(){
+  const box=$("curve"); box.innerHTML=`<div class="empty">Reading every result from this season…</div>`;
+  try{
+    const byRound={}; let off=0,total=1,guard=0;
+    while(off<total&&guard<15){
+      const d=await api(`/${S.season}/results.json?limit=100&offset=${off}`);
+      total=parseInt(d.MRData.total,10)||0;
+      (d.MRData.RaceTable.Races||[]).forEach(function(r){
+        const rn=parseInt(r.round,10); if(!byRound[rn]) byRound[rn]={};
+        (r.Results||[]).forEach(function(x){ byRound[rn][x.Driver.driverId]=
+          (byRound[rn][x.Driver.driverId]||0)+parseFloat(x.points||0); }); });
+      off+=100; guard++;
+    }
+    const rounds=Object.keys(byRound).map(Number).sort((a,b)=>a-b);
+    if(!rounds.length){ box.innerHTML=`<div class="empty">No results to chart.</div>`; return; }
+    const tot={}; rounds.forEach(rn=>Object.keys(byRound[rn]).forEach(id=>tot[id]=(tot[id]||0)+byRound[rn][id]));
+    const top=Object.keys(tot).sort((a,b)=>tot[b]-tot[a]).slice(0,6);
+    const names={}; S.results.forEach(r=>names[r.Driver.driverId]=r.Driver.familyName);
+    const run={},ser=top.map(()=>[]);
+    rounds.forEach(rn=>top.forEach(function(id,i){ run[id]=(run[id]||0)+(byRound[rn][id]||0); ser[i].push(run[id]); }));
+    const max=Math.max.apply(null,[1].concat(ser.reduce((a,s)=>a.concat(s),[])));
+    const W=720,H=260,mL=40,mB=26,mT=10,mR=10;
+    const px=i=>mL+(rounds.length<2?0:i*(W-mL-mR)/(rounds.length-1));
+    const py=v=>mT+(1-v/max)*(H-mT-mB);
+    let g="";
+    for(let t=0;t<=4;t++){ const v=max*t/4,yy=py(v);
+      g+=`<line x1="${mL}" y1="${yy}" x2="${W-mR}" y2="${yy}" stroke="var(--line)"/>
+        <text x="${mL-6}" y="${yy+3}" text-anchor="end" font-size="10" fill="var(--muted)"
+          font-family="var(--mono)">${Math.round(v)}</text>`; }
+    rounds.forEach(function(rn,i){ if(rounds.length<=12||i%2===0)
+      g+=`<text x="${px(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)"
+        font-family="var(--mono)">${rn}</text>`; });
+    ser.forEach(function(s,i){ g+=`<polyline fill="none" stroke="${CUR[i%6]}" stroke-width="1.8"
+      points="${s.map((v,j)=>px(j)+","+py(v)).join(" ")}"/>`; });
+    box.innerHTML=`<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%"
+        style="min-width:520px;display:block">${g}</svg></div>
+      <div class="legend">${top.map((id,i)=>`<span><span class="swatch"
+        style="background:${CUR[i%6]}"></span>${esc(names[id]||id.replace(/_/g," "))}</span>`).join("")}</div>
+      <p class="caption">Cumulative points across ${rounds.length} rounds from race classifications.
+        Before 1991 only a driver's best few results counted toward the title, so this can run ahead
+        of the official table of the day. Sprint points aren't included.</p>`;
+  }catch(e){ box.innerHTML=`<div class="empty err">Couldn't build the chart. ${esc(e.message)}</div>`; }
+}
+
+async function loadTiming(){
+  try{
+    const d=await api(`/${S.season}/${S.round}/pitstops.json?limit=100`);
+    const r=d.MRData.RaceTable.Races[0];
+    const nameOf={}; S.results.forEach(x=>nameOf[x.Driver.driverId]=x.Driver.familyName);
+    S.pits=((r&&r.PitStops)||[]).map(p=>({ name:nameOf[p.driverId]||p.driverId,
+      lap:parseInt(p.lap,10), dur:parseFloat(p.duration)||null }));
+  }catch(e){ S.pits=[]; }
+  const pp=pitPanel();
+  if(pp&&$("pits")) $("pits").innerHTML=pp; else drop("pits");
+
+  if(S.season>=2023){
+    try{
+      S.sessionKey=await findSession();
+      if(S.sessionKey){
+        const res=await Promise.all([
+          of1(`/stints?session_key=${S.sessionKey}`).catch(()=>[]),
+          of1(`/drivers?session_key=${S.sessionKey}`).catch(()=>[]),
+          of1(`/weather?session_key=${S.sessionKey}`).catch(()=>[]),
+          of1(`/race_control?session_key=${S.sessionKey}`).catch(()=>[])]);
+        S.stints=res[0]; S.of1drivers=res[1];
+        const wp=weatherPanel(res[2]); if(wp&&$("weather")) $("weather").innerHTML=wp; else drop("weather");
+        const rp=racePanel(res[3]); if(rp&&$("rc")) $("rc").innerHTML=rp; else drop("rc");
+      } else { S.stints=[]; drop("weather"); drop("rc"); }
+    }catch(e){ S.stints=[]; drop("weather"); drop("rc"); }
+  } else { S.stints=[]; drop("weather"); drop("rc"); drop("laps"); }
+
+  const sp=stintPanel();
+  if(sp&&$("stints")) $("stints").innerHTML=sp; else drop("stints");
+  if(!S.sessionKey) drop("laps");
+}
+
+function renderRace(){
+  const r=S.race;
+  if(!r){ $("main").innerHTML=`<div class="empty">Loading the race…</div>`; return; }
+  const loc=r.Circuit.Location;
+  $("main").innerHTML=`
+    <div class="meta">${r.season} · round ${r.round} · ${r.date}</div>
+    <h1>${esc(r.raceName)}</h1>
+    <div class="sub"><a class="lnk" data-go="circuit" data-id="${esc(r.Circuit.circuitId)}">${
+      esc(r.Circuit.circuitName)}</a> · ${esc(loc.locality)}, ${esc(loc.country)}</div>
+    ${tiles()}
+    <div class="grid">
+      <section class="panel"><h2>Where the race was won and lost<span class="note">grid to flag</span></h2>
+        <div class="body">${ladder()}</div></section>
+      <section class="panel"><h2>Championship after round ${r.round}</h2>
+        <div class="body" id="standings">${standings()}</div></section>
+    </div>
+    <section class="panel"><h2>Tyre strategy<span class="note">compound · stint length · tyre age</span></h2>
+      <div class="body" id="stints"><div class="empty">Reading the timing stream…</div></div></section>
+    <div class="grid">
+      <section class="panel"><h2>Pit stops<span class="note">stationary time</span></h2>
+        <div class="body" id="pits"><div class="empty">Loading…</div></div></section>
+      <section class="panel"><h2>Conditions</h2>
+        <div class="body" id="weather"><div class="empty">Loading…</div></div></section>
+    </div>
+    <section class="panel"><h2>Lap time analysis<span class="note">degradation and stint pace</span></h2>
+      <div class="body" id="laps"><div class="empty">
+        <button class="btn" id="lapBtn">Load every lap</button></div></div></section>
+    <section class="panel"><h2>Race control log<span class="note">flags · safety cars · stewards</span></h2>
+      <div class="body" id="rc"><div class="empty">Loading…</div></div></section>
+    <section class="panel"><h2>Race insight</h2>
+      <div class="body" id="brief"><div class="empty">Loading…</div></div></section>
+    <section class="panel"><h2>Full classification</h2><div class="body">${classification()}</div></section>
+    <section class="panel"><h2>New to this?</h2><div class="body">
+      <p style="margin:0 0 12px;color:var(--muted);max-width:66ch">If the tyre chart and pit windows
+      above don't mean much yet, the guide walks through how a race is actually won — in eight short
+      chapters, assuming nothing.</p>
+      <button class="btn" id="toLearn">Open the guide</button></div></section>
+    <section class="panel"><h2>How the ${r.season} title was decided</h2>
+      <div class="body" id="curve"><div class="empty">
+        <button class="btn" id="curveBtn">Chart the title fight</button></div></div></section>
+    ${footer()}`;
+  $("curveBtn").onclick=seasonCurve;
+  if($("lapBtn")) $("lapBtn").onclick=loadLaps;
+  if($("toLearn")) $("toLearn").onclick=function(){ setView("learn"); window.scrollTo(0,0); };
+  bindTabs(); bindLinks();
+  loadBrief(); loadTiming();
+}
+
+/* ================= DRIVER VIEW ================= */
+
+async function renderDriver(){
+  const id=S.driverId;
+  if(!id){ $("main").innerHTML=`<div class="empty">Pick a driver.</div>`; return; }
+  $("main").innerHTML=`<div class="empty">Loading career…</div>`;
+  try{
+    const bio=await api(`/drivers/${id}.json`);
+    const d=bio.MRData.DriverTable.Drivers[0];
+    if(!d) throw new Error("Driver not found.");
+    const seasons=await seasonsOf("drivers",id);
+
+    // Jolpica requires a season in the path for standings, so fetch year by year.
+    const rows=(await inChunks(seasons,3,async function(y){
+      try{
+        const r=await api(`/${y}/drivers/${id}/driverStandings.json`);
+        const l=r.MRData.StandingsTable.StandingsLists[0];
+        if(!l) return null;
+        const st=l.DriverStandings[0];
+        return { season:y, pos:parseInt(st.position,10)||null,
+          points:parseFloat(st.points||0), wins:parseInt(st.wins,10)||0,
+          teams:(st.Constructors||[]).map(c=>c.name),
+          teamIds:(st.Constructors||[]).map(c=>c.constructorId) };
+      }catch(e){ return null; }
+    })).filter(Boolean);
+
+    const extra=await Promise.all([
+      count(`/drivers/${id}/races.json`),
+      count(`/drivers/${id}/results/2.json`),
+      count(`/drivers/${id}/results/3.json`),
+      count(`/drivers/${id}/qualifying/1.json`)]);
+    const races=extra[0], p2=extra[1], p3=extra[2], poles=extra[3];
+
+    const titles=rows.filter(r=>r.pos===1).length;
+    const wins=rows.reduce((a,r)=>a+r.wins,0);
+    const pts=rows.reduce((a,r)=>a+r.points,0);
+    const best=rows.filter(r=>r.pos).reduce((a,r)=>a==null||r.pos<a?r.pos:a,null);
+    const podiums=(p2==null||p3==null)?null:wins+p2+p3;
+    const age=d.dateOfBirth?Math.floor((Date.now()-new Date(d.dateOfBirth))/(365.25*24*3600*1000)):null;
+    const pct=(n)=>(n!=null&&races)?(100*n/races).toFixed(1)+"% of starts":"";
+    const t=(k,v,sub)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div>
+      <div class="s">${esc(sub||"")}</div></div>`;
+
+    $("main").innerHTML=`
+      <div class="meta">${esc(d.nationality||"")}${d.permanentNumber?" · #"+d.permanentNumber:""}${
+        d.code?" · "+esc(d.code):""}</div>
+      <h1>${esc(d.givenName+" "+d.familyName)}</h1>
+      <div class="sub">${d.dateOfBirth?"Born "+d.dateOfBirth+(age?" · "+age+" years old":""):""}${
+        rows.length?" · raced "+rows[0].season+"\u2013"+rows[rows.length-1].season:""}</div>
+      <div class="tiles">
+        ${t("Championships",titles,titles?"world titles":"best finish P"+(best||"—"))}
+        ${t("Wins",wins,pct(wins))}
+        ${t("Podiums",nOr(podiums),pct(podiums))}
+        ${t("Poles",nOr(poles),"")}
+        ${t("Entries",nOr(races),"championship rounds")}
+        ${t("Seasons",rows.length,"")}
+        ${t("Career points",Math.round(pts*10)/10,"scoring systems varied")}
+      </div>
+      <section class="panel"><h2>Championship position by season<span class="note">higher is better</span></h2>
+        <div class="body">${seasonChart(rows,"pos",{invert:true,colour:"var(--amber)",
+          tip:r=>"P"+r.pos+", "+r.points+" pts"})||`<div class="empty">Only one season on record.</div>`}
+        <p class="caption">Finishing position in the drivers' championship, plotted so higher on the
+          chart is a better result. Read it against the team column below — a driver's curve tracks
+          the machinery more closely than almost anything else.</p></div></section>
+      <section class="panel"><h2>Points per season</h2>
+        <div class="body">${seasonChart(rows,"points",{colour:"var(--steel)",tip:r=>r.points+" pts"})
+          ||`<div class="empty">Not enough seasons to chart.</div>`}
+        <p class="caption">Raw totals aren't comparable across eras — a win paid 8 points in 1955,
+          9 in 1980, 10 through 2009 and 25 since. Read the shape, not the height.</p></div></section>
+      <section class="panel"><h2>Season by season</h2><div class="body"><div class="scroll"><table>
+        <thead><tr><th>Season</th><th>Team</th><th>Pos</th><th>Wins</th><th>Points</th></tr></thead>
+        <tbody>${rows.slice().reverse().map(r=>`<tr>
+          <td class="num" style="color:var(--text)">${r.season}</td>
+          <td class="small">${r.teamIds.map((tid,i)=>`<a class="lnk" data-go="team" data-id="${esc(tid)}">${
+            esc(r.teams[i]||tid)}</a>`).join(", ")}</td>
+          <td class="num" style="color:${r.pos===1?"var(--amber)":"var(--muted)"}">${r.pos||"—"}</td>
+          <td class="num">${r.wins||"—"}</td>
+          <td class="num" style="width:56px">${r.points}</td></tr>`).join("")}</tbody></table></div></div></section>
+      ${footer()}`;
+    bindLinks();
+  }catch(e){ $("main").innerHTML=`<div class="empty err">Couldn't load this driver. ${esc(e.message)}</div>`; }
+}
+
+const ERAS=[
+  {yrs:"1950–1960",h:"Front-engined, then everything moved",p:"Cars began as pre-war designs with the engine ahead of the driver. Cooper's rear-engined layout won the 1959 title and within two seasons every serious car had copied it. Nothing since has changed the shape of the sport so completely."},
+  {yrs:"1961–1976",h:"Wings, monocoques and sponsorship",p:"Aluminium monocoques replaced spaceframes. Wings appeared in 1968 and were immediately dangerous enough to be regulated. The Cosworth DFV made competitive engines available to anyone with the money, which is why grids swelled with small British constructors."},
+  {yrs:"1977–1982",h:"Ground effect",p:"Lotus discovered that shaping the underbody into an inverted wing generated enormous downforce with little drag. Cornering speeds climbed so fast that sliding skirts were banned and flat floors mandated for 1983."},
+  {yrs:"1983–1988",h:"Turbo power",p:"Qualifying engines reached figures north of 1,000 bhp in short bursts. Fuel limits and boost caps were introduced to contain them, and turbos were banned outright at the end of 1988."},
+  {yrs:"1989–1993",h:"Electronic driver aids",p:"Active suspension, traction control, ABS and semi-automatic gearboxes made the fastest cars extraordinarily capable. Almost all of it was banned for 1994 on the grounds that the driver had stopped mattering enough."},
+  {yrs:"1994–2005",h:"Grooved tyres and V10s",p:"Safety reform after 1994 reshaped the rulebook. Grooved tyres cut mechanical grip while aerodynamic development accelerated, and the 3.0-litre V10 became the defining engine of the era."},
+  {yrs:"2006–2013",h:"V8s, KERS and blown diffusers",p:"Engines shrank to 2.4-litre V8s and were then frozen. Teams poured development into aerodynamics instead — double diffusers, F-ducts, exhaust gases blown across the floor. KERS introduced hybrid energy recovery in a small way."},
+  {yrs:"2014–2021",h:"Hybrid turbo V6",p:"1.6-litre turbo V6 power units with two energy recovery systems, the MGU-K and the exhaust-driven MGU-H. Thermal efficiency passed 50%. Whoever understood the new formula first won for years — which is exactly what Mercedes did."},
+  {yrs:"2022–2025",h:"Ground effect returns",p:"Venturi tunnels came back to let cars follow each other more closely. Early cars porpoised violently at speed until floor edges and ride heights were reworked. A cost cap and sliding-scale wind tunnel time began pulling the field together."},
+  {yrs:"2026–",h:"Active aero and a 50/50 power split",p:"Smaller, lighter cars with roughly 30% less downforce and 55% less drag. The MGU-H is gone and the MGU-K roughly tripled to 350kW, splitting power near evenly between combustion and electric on fully sustainable fuel. Movable front and rear wings replaced DRS, and energy management became the central strategic skill."}
+];
+
+function carDiagram(){
+  return `<svg viewBox="0 0 700 250" width="100%" style="max-width:700px;display:block;margin:0 auto">
+    <g fill="none" stroke="var(--line)" stroke-width="1.2">
+      <path d="M120 125 L150 108 L300 100 L430 100 L520 108 L575 118 L575 132 L520 142 L430 150 L300 150 L150 142 Z"
+        fill="var(--panel2)"/>
+      <rect x="70" y="106" width="52" height="38" rx="4" fill="var(--panel2)"/>
+      <rect x="556" y="86" width="46" height="12" rx="2" fill="var(--panel2)"/>
+      <rect x="176" y="72" width="34" height="34" rx="3" fill="var(--panel2)"/>
+      <rect x="176" y="144" width="34" height="34" rx="3" fill="var(--panel2)"/>
+      <rect x="470" y="66" width="40" height="40" rx="3" fill="var(--panel2)"/>
+      <rect x="470" y="144" width="40" height="40" rx="3" fill="var(--panel2)"/>
+      <path d="M300 108 a26 26 0 0 1 52 0" stroke="var(--steel)" stroke-width="1.6"/>
+      <path d="M330 100 L330 150" stroke-dasharray="3 3"/>
+    </g>
+    <g font-size="10" font-family="var(--mono)" fill="var(--muted)">
+      <text x="96" y="98" text-anchor="middle">front wing</text>
+      <text x="193" y="66" text-anchor="middle">front tyre</text>
+      <text x="326" y="92" text-anchor="middle">halo</text>
+      <text x="400" y="128" text-anchor="middle" fill="var(--steel)">floor / venturi tunnels</text>
+      <text x="490" y="60" text-anchor="middle">rear tyre</text>
+      <text x="579" y="80" text-anchor="middle">rear wing</text>
+      <text x="545" y="168" text-anchor="middle">diffuser</text>
+      <text x="240" y="128" text-anchor="middle">sidepod inlet</text>
+    </g>
+  </svg>
+  <p class="caption">A schematic, not any specific car. The floor is where most downforce is made
+    under the current rules — the wings you can see from the grandstand generate far less of it than
+    the tunnels you can't. That's why "we changed the floor" is the most consequential sentence in
+    an upgrade briefing, and why teams photograph each other's floors in the pit lane.</p>`;
+}
+
+async function renderTeam(){
+  const id=S.teamId;
+  if(!id){ $("main").innerHTML=`<div class="empty">Pick a team.</div>`; return; }
+  $("main").innerHTML=`<div class="empty">Loading team history…</div>`;
+  try{
+    const bio=await api(`/constructors/${id}.json`);
+    const c=bio.MRData.ConstructorTable.Constructors[0];
+    if(!c) throw new Error("Team not found.");
+    const seasons=await seasonsOf("constructors",id);
+
+    const rows=(await inChunks(seasons,3,async function(y){
+      try{
+        const r=await api(`/${y}/constructors/${id}/constructorStandings.json`);
+        const l=r.MRData.StandingsTable.StandingsLists[0];
+        if(!l) return null;
+        const st=l.ConstructorStandings[0];
+        return { season:y, pos:parseInt(st.position,10)||null,
+          points:parseFloat(st.points||0), wins:parseInt(st.wins,10)||0 };
+      }catch(e){ return null; }
+    })).filter(Boolean);
+
+    const extra=await Promise.all([
+      count(`/constructors/${id}/races.json`),
+      count(`/constructors/${id}/results/1.json`),
+      count(`/constructors/${id}/qualifying/1.json`)]);
+    const races=extra[0], winsAll=extra[1], poles=extra[2];
+    const titles=rows.filter(r=>r.pos===1).length;
+    const wins=winsAll!=null?winsAll:rows.reduce((a,r)=>a+r.wins,0);
+    const best=rows.filter(r=>r.pos).reduce((a,r)=>a==null||r.pos<a?r.pos:a,null);
+    const t=(k,v,sub)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div>
+      <div class="s">${esc(sub||"")}</div></div>`;
+
+    let notes="";
+    try{ const nr=await fetch(`./teams/${id}.json`);
+      if(nr.ok){ const n=await nr.json();
+        notes=`<section class="panel"><h2>Car development notes</h2><div class="body">
+          ${(n.entries||[]).map(e=>`<div class="era"><span class="yrs">${esc(e.when||"")}</span>
+            <h4>${esc(e.title||"")}</h4><p>${esc(e.body||"")}</p></div>`).join("")}</div></section>`; }
+    }catch(e){}
+
+    $("main").innerHTML=`
+      <div class="meta">${esc(c.nationality||"")}</div>
+      <h1>${esc(c.name)}</h1>
+      <div class="sub">${rows.length?"Competed "+rows[0].season+"\u2013"+rows[rows.length-1].season:
+        (seasons.length?"Competed "+seasons[0]+"\u2013"+seasons[seasons.length-1]:"")}</div>
+      <div class="tiles">
+        ${t("Constructors' titles",titles,titles?"":"best finish P"+(best||"—"))}
+        ${t("Race wins",wins,(races?(100*wins/races).toFixed(1)+"% of entries":""))}
+        ${t("Poles",nOr(poles),"")}
+        ${t("Entries",nOr(races),"car entries, not rounds")}
+        ${t("Seasons",seasons.length,"")}
+      </div>
+      <section class="panel"><h2>Championship position by season<span class="note">higher is better</span></h2>
+        <div class="body">${seasonChart(rows,"pos",{invert:true,colour:"var(--amber)",
+          tip:r=>"P"+r.pos+", "+r.wins+" wins"})
+          ||`<div class="empty">The constructors' championship began in 1958, so there isn't enough
+            standings history to chart for this team.</div>`}
+        <p class="caption">Sharp jumps almost always follow a regulation reset. Teams that read a new
+          rulebook fastest gain more in one winter than years of steady development deliver.</p>
+        </div></section>
+      ${rows.length?`<section class="panel"><h2>Season by season</h2><div class="body"><div class="scroll"><table>
+        <thead><tr><th>Season</th><th>Position</th><th>Wins</th><th>Points</th></tr></thead><tbody>
+        ${rows.slice().reverse().map(r=>`<tr><td class="num" style="color:var(--text)">${r.season}</td>
+          <td class="num" style="color:${r.pos===1?"var(--amber)":"var(--muted)"};width:60px">${r.pos||"—"}</td>
+          <td class="num">${r.wins||"—"}</td><td class="num" style="width:56px">${r.points}</td></tr>`).join("")}
+        </tbody></table></div></div></section>`:""}
+      ${notes}
+      <section class="panel"><h2>Anatomy of a modern car</h2><div class="body">${carDiagram()}</div></section>
+      <section class="panel"><h2>What changed, era by era<span class="note">regulation history</span></h2>
+        <div class="body">${ERAS.map(e=>`<div class="era"><span class="yrs">${e.yrs}</span>
+          <h4>${esc(e.h)}</h4><p>${esc(e.p)}</p></div>`).join("")}
+        <p class="caption">These are the sport-wide rule changes every team had to respond to.
+          Team-specific upgrade histories aren't published in any free dataset. Write them into
+          <code>teams/${esc(id)}.json</code> and they'll appear above the diagram.</p>
+        </div></section>
+      ${footer()}`;
+    bindLinks();
+  }catch(e){ $("main").innerHTML=`<div class="empty err">Couldn't load this team. ${esc(e.message)}</div>`; }
+}
+
+/* ================= CIRCUIT VIEW ================= */
+
+const CIRCUIT_NOTES={
+  monza:{t:"The Temple of Speed",b:"Opened in 1922 in a royal park north of Milan, Monza is the fastest circuit on the calendar and has hosted more world championship races than anywhere else. Teams strip downforce to almost nothing here, which makes the cars nervous under braking and turns the chicanes into the only real overtaking points. The banked oval that once ran alongside the current track is still standing, derelict, in the trees."},
+  monaco:{t:"Impossible to pass, impossible to skip",b:"Run through the streets of Monte Carlo since 1929, on a layout barely wider than the cars. Qualifying effectively decides the race, which is why teams accept a compromised setup for one perfect Saturday lap. It is the slowest circuit of the year and the one where a driver's precision is most exposed — a centimetre of error is a wall, not a gravel trap."},
+  spa:{t:"Weather in two places at once",b:"Seven kilometres through the Ardennes forest, the longest circuit on the calendar. Eau Rouge and Raidillon climb steeply enough that the compression at the bottom loads the car with several times its own weight. The track is long enough that it can be raining at one end and dry at the other, which has decided more races here than any overtake."},
+  silverstone:{t:"A wartime airfield that became the sport's home",b:"Hosted the first world championship race in 1950, on the runways and perimeter roads of a Second World War bomber station. Maggotts, Becketts and Chapel is a rapid direction change that rewards aerodynamic stability more than raw power, and is regarded as one of the great tests of a chassis anywhere in the world."},
+  suzuka:{t:"The only figure of eight",b:"Designed by John Hugenholtz as a Honda test track and opened in 1962, Suzuka crosses over itself — the only such layout in the championship. The Esses in the first sector demand a rhythm that punishes any error immediately, since every corner sets up the next. Most drivers name it the best circuit they race on."},
+  interlagos:{t:"Anti-clockwise, uphill, and rarely quiet",b:"Short by modern standards and built on uneven ground in São Paulo, which gives it elevation change and a bumpy surface. It runs anti-clockwise, loading drivers' necks the opposite way from usual. The long climb to the start-finish line combined with a slipstream makes it one of the better overtaking circuits, and the weather does the rest."},
+  nurburgring:{t:"Two very different tracks with one name",b:"The modern GP circuit shares a name with the Nordschleife, the 20km original that hosted the German Grand Prix until 1976, when Niki Lauda's crash ended championship racing there. The old circuit is still open to the public and remains the benchmark against which road cars are measured."},
+  marina_bay:{t:"Night racing on Singapore's streets",b:"The championship's first night race, run since 2008 under floodlights on public roads. Humidity stays near saturation and cockpit temperatures are the highest of the year — drivers routinely lose several kilos across a race. Walls on both sides and a high safety car probability make it a strategist's circuit."},
+  albert_park:{t:"A lake circuit that opens the season",b:"Semi-permanent, laid out around Albert Park Lake in Melbourne. The surface is used by ordinary traffic for most of the year, so grip is poor on Friday and improves dramatically across the weekend — a bigger effect here than at almost any permanent track."},
+  bahrain:{t:"Abrasive tarmac in the desert",b:"Run at night since 2014. The surface is unusually abrasive and the desert sand blows across it, which makes tyre degradation the defining factor. Track temperature drops sharply after sunset, so what teams learn in the afternoon often doesn't apply to the race."},
+  villeneuve:{t:"The Wall of Champions",b:"A temporary circuit on an island in the St Lawrence, mostly straights joined by tight chicanes — hard on brakes and rewarding traction. The wall on the exit of the final chicane earned its name in 1999 when three world champions hit it in the same race."},
+  red_bull_ring:{t:"The shortest lap of the year",b:"Barely a minute per lap in the Styrian hills, which packs the entire field into a few seconds and makes traffic in qualifying a genuine problem. Steep gradients and heavy braking zones give it more overtaking than its length suggests."},
+  hungaroring:{t:"Monaco without the walls",b:"Tight, twisty and short on straights, built in 1986 as the first championship race behind the Iron Curtain. Overtaking is difficult enough that strategy decides most races, and the summer heat makes it one of the physically hardest events of the year."},
+  yas_marina:{t:"Day into night",b:"The season finale for most of its history, starting in daylight and finishing under lights, so track temperature falls steadily through the race. Reprofiled in 2021 to remove several slow corners after years of criticism about processional racing."},
+  americas:{t:"Borrowed corners, done well",b:"Opened in Austin in 2012, its layout quotes famous corners from other circuits — the uphill first turn echoes Silverstone's Maggotts sequence, the esses recall Suzuka. The Texas ground has subsided over time, making the surface notably bumpy."}
+};
+
+async function renderCircuit(){
+  const id=S.circuitId;
+  if(!id){ $("main").innerHTML=`<div class="empty">Pick a circuit.</div>`; return; }
+  $("main").innerHTML=`<div class="empty">Loading circuit history…</div>`;
+  try{
+    const bio=await api(`/circuits/${id}.json`);
+    const c=bio.MRData.CircuitTable.Circuits[0];
+    if(!c) throw new Error("Circuit not found.");
+    const rr=await api(`/circuits/${id}/races.json?limit=100`);
+    const races=(rr.MRData.RaceTable.Races||[]).sort((a,b)=>a.season-b.season);
+
+    let winners=[];
+    try{
+      const wr=await api(`/circuits/${id}/results/1.json?limit=100`);
+      winners=(wr.MRData.RaceTable.Races||[]).map(function(r){
+        const w=(r.Results||[])[0]; if(!w) return null;
+        return { season:+r.season, round:r.round,
+          driver:w.Driver.givenName+" "+w.Driver.familyName, driverId:w.Driver.driverId,
+          team:w.Constructor.name, teamId:w.Constructor.constructorId,
+          grid:parseInt(w.grid,10)||null };
+      }).filter(Boolean).sort((a,b)=>b.season-a.season);
+    }catch(e){ winners=[]; }
+
+    const grids=winners.map(w=>w.grid).filter(g=>g&&g>0);
+    const avgGrid=grids.length?grids.reduce((a,b)=>a+b,0)/grids.length:null;
+    const fromPole=grids.length?grids.filter(g=>g===1).length/grids.length*100:null;
+    const tally=(key)=>{ const m={}; winners.forEach(w=>m[w[key]]=(m[w[key]]||0)+1);
+      const top=Object.keys(m).sort((a,b)=>m[b]-m[a])[0];
+      return top?{name:top,n:m[top]}:null; };
+    const topD=tally("driver"), topT=tally("team");
+    const note=CIRCUIT_NOTES[id];
+    const t=(k,v,sub)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div>
+      <div class="s">${esc(sub||"")}</div></div>`;
+
+    let character="";
+    if(avgGrid!=null){
+      character = avgGrid<2 ? "Track position is close to decisive here — winners almost always start at the very front, which is the signature of a circuit where passing is hard."
+        : avgGrid<3.5 ? "Starting near the front matters a great deal, though the race isn't over on Saturday."
+        : "Winners have come from a broad range of grid slots, which points to real overtaking opportunities and strategy that can genuinely change the result.";
+    }
+
+    $("main").innerHTML=`
+      <div class="meta">${esc(c.Location.locality||"")}, ${esc(c.Location.country||"")}${
+        c.Location.lat?" · "+(+c.Location.lat).toFixed(3)+", "+(+c.Location.long).toFixed(3):""}</div>
+      <h1>${esc(c.circuitName)}</h1>
+      ${note?`<div class="sub" style="font-size:16px;color:var(--text);max-width:64ch;margin-top:12px">
+        ${esc(note.t)}</div>`:""}
+      <div class="tiles">
+        ${t("Races held",races.length,races.length?races[0].season+"\u2013"+races[races.length-1].season:"")}
+        ${t("Won from pole",fromPole!=null?fromPole.toFixed(0)+"%":"\u2014","of recorded winners")}
+        ${t("Average winning grid",avgGrid!=null?"P"+avgGrid.toFixed(1):"\u2014","lower means harder to pass")}
+        ${t("Most wins",topD?topD.name.split(" ").slice(-1)[0]:"\u2014",topD?topD.n+" victories":"")}
+        ${t("Most successful team",topT?topT.name:"\u2014",topT?topT.n+" wins":"")}
+      </div>
+      ${note?`<section class="panel"><h2>The story of this place</h2><div class="body">
+        <p style="margin:0;max-width:70ch;line-height:1.7;color:var(--muted)">${esc(note.b)}</p>
+        </div></section>`:""}
+      ${character?`<section class="panel"><h2>What the numbers say about racing here</h2><div class="body">
+        <p style="margin:0;max-width:70ch;line-height:1.7;color:var(--muted)">${esc(character)}</p>
+        <p class="caption">Average winning grid slot is a blunt but honest measure of how much
+          overtaking a circuit allows. Monaco sits near P1.5; circuits with long straights and heavy
+          braking zones run past P4. It's derived from every recorded winner here, so it improves as
+          the sample grows.</p></div></section>`:""}
+      <section class="panel"><h2>Every winner here</h2><div class="body">
+        ${winners.length?`<div class="scroll"><table>
+          <thead><tr><th>Season</th><th>Winner</th><th>Team</th><th>From</th></tr></thead><tbody>
+          ${winners.map(w=>`<tr><td class="num" style="color:var(--text)">${w.season}</td>
+            <td><a class="lnk" data-go="driver" data-id="${esc(w.driverId)}">${esc(w.driver)}</a></td>
+            <td class="small"><a class="lnk" data-go="team" data-id="${esc(w.teamId)}">${esc(w.team)}</a></td>
+            <td class="num" style="color:${w.grid===1?"var(--amber)":"var(--muted)"};width:52px">${
+              w.grid?"P"+w.grid:"\u2014"}</td></tr>`).join("")}</tbody></table></div>`
+          :`<div class="empty">Winner history isn't available for this circuit.</div>`}
+      </div></section>
+      ${footer()}`;
+    bindLinks();
+  }catch(e){ $("main").innerHTML=`<div class="empty err">Couldn't load this circuit. ${esc(e.message)}</div>`; }
+}
+
+/* ================= LEARN VIEW ================= */
+
+const LEARN=[
+{n:"Start here",body:`
+<p>Formula 1 is a world championship run over roughly twenty-four races a year. Two titles are decided at once: the <b>drivers' championship</b>, which goes to the individual with the most points, and the <b>constructors' championship</b>, which adds both of a team's cars together. The constructors' title is the one teams care most about, because prize money is paid by finishing position.</p>
+<p>Points go to the top ten finishers: 25, 18, 15, 12, 10, 8, 6, 4, 2, 1. Everyone else scores nothing.</p>
+<p>The single most important thing to understand, and the thing most new viewers miss: <b>every team designs and builds its own car.</b> This is not NASCAR or IndyCar where everyone runs the same chassis. The car sets the ceiling on what is possible, and the driver decides how close to that ceiling they get. When someone finishes fourteenth, it usually says more about their machinery than their ability.</p>
+<p>A race weekend runs Friday to Sunday: three practice sessions, then qualifying, then the race. Qualifying sets the starting order. Some weekends replace one practice session with a shorter sprint race.</p>`},
+
+{n:"How a car is fast",body:`
+<p>Roughly speaking, lap time comes from three things: how much grip the car can generate, how much power it has, and how little it weighs. Grip dominates.</p>
+<p><b>Downforce</b> is aerodynamic load pressing the car into the road. It doesn't come mainly from the wings you can see — under the current rules most of it is generated by the <b>floor</b>, shaped into tunnels that accelerate air underneath the car and create low pressure. This is why "we brought a new floor" is the most consequential sentence in an upgrade briefing, and why teams photograph each other's floors in the pit lane.</p>
+<p>Downforce comes with <b>drag</b>, which costs straight-line speed. Every car is a chosen point on that trade-off, and teams change wing levels for each circuit. A car set up to win in Monaco would be slow at Monza and vice versa. This is the single best explanation for why the pecking order shuffles from weekend to weekend.</p>
+<p><b>Dirty air</b> is the wake behind a car. A following car loses downforce in it, which is why closing to within a second is easy and the last half-second is brutal. Reducing this was the entire point of the 2022 and 2026 aerodynamic rewrites.</p>
+<p>As of 2026 the power unit splits output close to evenly between a turbo combustion engine and electric deployment, running on fully sustainable fuel. Movable front and rear wings replaced DRS, and a boost button lets a driver spend saved energy attacking or defending. <b>Energy management is now what fuel strategy used to be</b> — a driver can be quick and still lose a place because the battery ran flat before the braking zone.</p>`},
+
+{n:"Tyres",body:`
+<p>Tyres are the most important variable in a race and the least visible on television.</p>
+<p>Pirelli brings three dry compounds to each weekend, labelled <b>soft</b> (red), <b>medium</b> (yellow) and <b>hard</b> (white), plus <b>intermediates</b> (green) and <b>full wets</b> (blue). Softer means more grip and faster degradation. There are also actual different compounds underneath those labels — the "soft" at one circuit may be a harder rubber than the "medium" at another.</p>
+<p>Every tyre has a <b>working window</b>, a temperature range where it performs. Too cold and it won't grip, which is why you see drivers weaving on out-laps. Too hot and it starts to fall apart.</p>
+<p>Two failure modes worth knowing apart. <b>Degradation</b> is the gradual loss of performance as the tyre wears and overheats — it shows up as lap times creeping slower through a stint. <b>Graining</b> is rubber tearing and rolling on the surface, usually on a cold or green track, and it can improve again if the driver manages it. A <b>cliff</b> is the point where a compound stops degrading gradually and simply gives up.</p>
+<p>One detail that separates casual from serious viewing: a tyre fitted with laps already on it, scrubbed in qualifying, behaves differently from a genuinely new set. Teams plan their whole weekend around saving fresh rubber. The tyre chart in the Races tab shows this as "tyre age at start".</p>`},
+
+{n:"Strategy",body:`
+<p>A pit stop costs about twenty seconds of race time — a couple of seconds stationary, and the rest lost driving the pit lane slowly. That number is the foundation of every strategic decision.</p>
+<p>The <b>undercut</b> is pitting before the car ahead. You get fresh tyres and set fast laps while they're still on old rubber, so when they stop you emerge ahead. It works when new tyres are much faster than worn ones. The <b>overcut</b> is the reverse: staying out while they pit, using clear track to build a gap. It works when the pit lane exit puts you in traffic, or when tyres need several laps to reach temperature.</p>
+<p>A <b>safety car</b> or <b>virtual safety car</b> slows the field. Because everyone is going slower, the time lost pitting shrinks dramatically — roughly by half. Whoever hasn't stopped yet gets what amounts to a free pit stop. This single mechanism has decided more races than any overtake, and it's largely luck of timing.</p>
+<p>At circuits where passing is hard, <b>track position</b> is worth more than tyre life, and teams will accept a slower car in clean air over a faster one stuck behind. At circuits with long straights the calculation flips.</p>`},
+
+{n:"What makes a driver good",body:`
+<p>Comparing drivers across different teams is mostly comparing cars. <b>The only fair yardstick is the teammate</b> — same machinery, same data, same engineers. Everything else is noise.</p>
+<p>What actually separates them:</p>
+<p><b>Braking.</b> Most lap time lives here, and it's less about braking late than about releasing the brake smoothly while turning in — trail braking. It's the hardest thing to do consistently.</p>
+<p><b>Tyre management.</b> Running slightly below the limit for twenty laps so there's grip left at the end. Deeply unglamorous and wins races.</p>
+<p><b>Qualifying versus race pace.</b> Different skills. Some drivers find a perfect lap on Saturday; others are ordinary in qualifying and relentless on Sunday.</p>
+<p><b>Feedback.</b> Badly underrated. A driver who can describe precisely what the car is doing steers development in the right direction all season.</p>
+<p><b>Wet weather.</b> The great equaliser — car advantage shrinks and driver skill shows.</p>
+<p>Drivers also have <b>style preferences</b>. Some want a sharp front end and tolerate a nervous rear; others need rear stability to attack. When a car doesn't suit a driver's style they can look badly out of form without having changed at all. This is one of the most common misreadings by newer fans.</p>`},
+
+{n:"Reading a weekend",body:`
+<p><b>Practice.</b> Ignore the headline times — cars run different fuel loads and engine modes. What matters is the <b>long run</b>: watch someone do ten to fifteen laps in a row late in the second session and see how much their lap time drops off. That's the real race pace and the real degradation.</p>
+<p><b>Qualifying.</b> Look at sector times, not just the total. Fast in sector one and slow in sector three tells you a car is strong on power and weak on traction. Always check the gap to the teammate. After qualifying the cars enter <b>parc fermé</b> and setup can't be changed, so teams must compromise between a quick Saturday and a survivable Sunday.</p>
+<p><b>The race.</b> Watch the first lap, then tyre degradation, then the pit windows. Ask who has fresher rubber and who has clear air. Under the 2026 rules, also watch who has energy saved for the final laps.</p>
+<p>A practical way to get good fast: <b>pick one thing per race and only watch that.</b> One weekend track only tyre degradation. The next, watch one driver's onboard the whole way. Trying to absorb everything at once is why the sport feels opaque at first.</p>`},
+
+{n:"Glossary",body:`
+<p><b>Box</b> — pit. "Box this lap" means come in.<br>
+<b>Delta</b> — a time difference, usually to a target or another car.<br>
+<b>Dirty air</b> — turbulent wake behind a car that costs the follower downforce.<br>
+<b>DNF</b> — did not finish.<br>
+<b>Formation lap</b> — the lap before the start, used to heat tyres and brakes.<br>
+<b>Graining</b> — torn rubber rolling on the tyre surface, costing grip.<br>
+<b>Lock-up</b> — a wheel stopping under braking, flat-spotting the tyre.<br>
+<b>Out-lap</b> — the lap leaving the pits, used to build temperature.<br>
+<b>Oversteer</b> — the rear slides first. <b>Understeer</b> — the front won't turn.<br>
+<b>Parc fermé</b> — the rule state after qualifying where setup is frozen.<br>
+<b>Pit delta</b> — total time lost by pitting, including the slow lane.<br>
+<b>Porpoising</b> — violent vertical bouncing caused by ground effect stalling and reattaching.<br>
+<b>Stint</b> — a run of laps on one set of tyres.<br>
+<b>Track limits</b> — the white lines; running beyond them can delete a lap time.<br>
+<b>Undercut / overcut</b> — pitting earlier, or later, than a rival to gain track position.<br>
+<b>VSC</b> — virtual safety car, a delta-time slowdown without a physical car.</p>`},
+
+{n:"Using this site",body:`
+<p><b>Races</b> — pick any Grand Prix back to 1950. The grid-to-flag ladder shows every driver's start and finish joined by a line, so you can read a race's shape instantly. From 2023 onward you also get the tyre strategy chart, pit stop times, lap-by-lap degradation traces, weather and the full race control log.</p>
+<p><b>Drivers</b> — full careers, with championship position plotted so higher is better. Compare a driver's curve against the teams column and you'll usually see the car, not the driver, doing the moving.</p>
+<p><b>Teams</b> — constructor history, plus a labelled car diagram and the regulation eras that shaped every design since 1950.</p>
+<p><b>Circuits</b> — history and a derived measure of how hard each track is to overtake at, based on the average grid slot winners started from.</p>
+<p>Names are clickable throughout. Start at a race, click a driver, click one of their teams, and keep going.</p>
+<p>A good first exercise: open the most recent race, load the lap analysis, and find where the winner's stint pace diverges from the second-place car. That gap is usually the race.</p>`}
+];
+
+function renderLearn(){
+  const i=Math.min(S.chapter,LEARN.length-1);
+  $("main").innerHTML=`
+    <div class="meta">A guide for people new to the sport</div>
+    <h1>Learn Formula 1</h1>
+    <div class="sub">Eight short chapters, in order. Nothing assumed.</div>
+    <div class="tabs" style="margin:24px 0 16px">
+      ${LEARN.map((c,j)=>`<button class="tab" data-ch="${j}" aria-selected="${j===i}">${j+1}. ${esc(c.n)}</button>`).join("")}
+    </div>
+    <section class="panel"><h2>${esc(LEARN[i].n)}<span class="note">chapter ${i+1} of ${LEARN.length}</span></h2>
+      <div class="body"><div style="max-width:72ch;line-height:1.75;color:var(--muted);font-size:15px">
+        ${LEARN[i].body}</div>
+        <div style="display:flex;gap:8px;margin-top:24px">
+          ${i>0?`<button class="btn" data-ch="${i-1}">\u2190 ${esc(LEARN[i-1].n)}</button>`:""}
+          ${i<LEARN.length-1?`<button class="btn" data-ch="${i+1}">${esc(LEARN[i+1].n)} \u2192</button>`:""}
+        </div>
+      </div></section>
+    ${footer()}`;
+  document.querySelectorAll("[data-ch]").forEach(function(b){
+    b.onclick=function(){ S.chapter=+b.dataset.ch; renderLearn(); window.scrollTo(0,0); }; });
+}
+
+/* ================= CALENDAR VIEW ================= */
+
+const MONTHS=["January","February","March","April","May","June","July",
+  "August","September","October","November","December"];
+const SESSION_LABELS=[["FirstPractice","Practice 1"],["SecondPractice","Practice 2"],
+  ["ThirdPractice","Practice 3"],["SprintQualifying","Sprint Qualifying"],
+  ["SprintShootout","Sprint Shootout"],["Sprint","Sprint"],["Qualifying","Qualifying"]];
+
+function whenOf(dateStr,timeStr){
+  if(!dateStr) return null;
+  return new Date(dateStr+"T"+(timeStr||"12:00:00Z"));
+}
+function fmtDay(d){
+  return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});
+}
+function fmtTime(d){
+  return d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+}
+
+async function renderCalendar(){
+  const yr=S.calSeason;
+  $("main").innerHTML=`<div class="empty">Loading the ${yr} calendar…</div>`;
+  try{
+    const d=await api(`/${yr}.json?limit=100`);
+    S.calRaces=d.MRData.RaceTable.Races||[];
+    const now=new Date();
+    const rows=S.calRaces.map(function(r){
+      const w=whenOf(r.date,r.time);
+      return { r, when:w, past:w?w<now:false, month:w?w.getMonth():null };
+    });
+    const nextIdx=rows.findIndex(x=>!x.past);
+    const monthsPresent=Array.from(new Set(rows.map(x=>x.month).filter(m=>m!=null))).sort((a,b)=>a-b);
+    const shown=S.calMonth==="all"?rows:rows.filter(x=>String(x.month)===String(S.calMonth));
+
+    const done=rows.filter(x=>x.past).length;
+    const t=(k,v,sub)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div>
+      <div class="s">${esc(sub||"")}</div></div>`;
+    const nx=nextIdx>-1?rows[nextIdx]:null;
+
+    $("main").innerHTML=`
+      <div class="meta">${yr} season</div>
+      <h1>Race calendar</h1>
+      <div class="sub">All times shown in your local timezone.</div>
+      <div class="tiles">
+        ${t("Rounds",rows.length,"championship races")}
+        ${t("Completed",done,rows.length?Math.round(100*done/rows.length)+"% of the season":"")}
+        ${t("Next up",nx?nx.r.raceName.replace(" Grand Prix",""):"Season complete",
+            nx&&nx.when?fmtDay(nx.when):"")}
+      </div>
+      <div class="tabs" style="margin-bottom:16px">
+        <button class="tab" data-mon="all" aria-selected="${S.calMonth==="all"}">All year</button>
+        ${monthsPresent.map(m=>`<button class="tab" data-mon="${m}"
+          aria-selected="${String(S.calMonth)===String(m)}">${MONTHS[m]}</button>`).join("")}
+      </div>
+      <section class="panel"><h2>${S.calMonth==="all"?"Full season":MONTHS[S.calMonth]}
+        <span class="note">click a round for the weekend schedule</span></h2>
+        <div class="body">${shown.length?shown.map(function(x,i){
+          const r=x.r, isNext=nx&&r.round===nx.r.round;
+          const sessions=SESSION_LABELS.map(function(sl){
+            const o=r[sl[0]]; if(!o) return null;
+            const w=whenOf(o.date,o.time); if(!w) return null;
+            return `<div>${sl[1]}<br><span style="color:var(--dim)">${fmtDay(w)} ${fmtTime(w)}</span></div>`;
+          }).filter(Boolean);
+          const rw=x.when?whenOf(r.date,r.time):null;
+          if(rw) sessions.push(`<div style="color:var(--text)">Race<br>
+            <span style="color:var(--dim)">${fmtDay(rw)} ${fmtTime(rw)}</span></div>`);
+          return `<div class="calrow${x.past?" calpast":""}" data-round="${r.round}">
+              <span class="caldate${isNext?" calnext":""}">${x.when?fmtDay(x.when):r.date}</span>
+              <span class="calname">${esc(r.raceName)}
+                <span style="color:var(--dim);font-size:12px"> · ${esc(r.Circuit.circuitName)}</span></span>
+              <span style="font-family:var(--mono);font-size:12px;color:${
+                isNext?"var(--green)":x.past?"var(--dim)":"var(--steel)"}">${
+                isNext?"next":x.past?"done":"upcoming"}</span>
+              <span style="font-family:var(--mono);font-size:12px;color:var(--dim)">R${r.round}</span>
+            </div>
+            ${sessions.length?`<div class="sessions" data-sess="${r.round}"${
+              isNext?"":' style="display:none"'}>${sessions.join("")}</div>`:""}`;
+        }).join(""):`<div class="empty">No rounds that month.</div>`}
+        <p class="caption">Completed rounds open straight into the full race analysis. Weekend
+          session times come from the schedule feed and only exist for recent seasons — older
+          calendars show the race date alone.</p>
+        </div></section>
+      ${footer()}`;
+
+    document.querySelectorAll("[data-mon]").forEach(function(b){
+      b.onclick=function(){ S.calMonth=b.dataset.mon==="all"?"all":+b.dataset.mon;
+        renderCalendar(); }; });
+    document.querySelectorAll("[data-round]").forEach(function(row){
+      row.onclick=function(){
+        const rd=row.dataset.round;
+        const past=row.classList.contains("calpast");
+        if(past){ S.round=+rd; setView("race"); window.scrollTo(0,0); return; }
+        const sess=document.querySelector(`[data-sess="${rd}"]`);
+        if(sess) sess.style.display = sess.style.display==="none" ? "grid" : "none";
+      };
+    });
+  }catch(e){ $("main").innerHTML=`<div class="empty err">Couldn't load the calendar. ${esc(e.message)}</div>`; }
+}
+
+/* ================= chrome ================= */
+
+function footer(){
+  return `<footer>
+    <div><h5>Results and history</h5><p><a href="https://github.com/jolpica/jolpica-f1">jolpica-f1</a>,
+      the community-run successor to Ergast. Every championship round since 1950.</p></div>
+    <div><h5>Timing and telemetry</h5><p><a href="https://openf1.org">OpenF1</a>, mirroring the
+      official timing stream. Tyre stints, laps, weather and race control, 2023 onwards.</p></div>
+    <div><h5>Written analysis</h5><p>Race briefs and circuit histories are written, not fetched —
+      no free dataset carries them.</p></div>
+    <div><h5>Not official</h5><p>Both data sources are free and volunteer-run. This site is not
+      affiliated with, endorsed by, or connected to Formula 1, the FIA, or any team.</p></div>
+    <div class="credit">Built by <a href="https://github.com/taritchoudhury">Tarit Choudhury</a></div>
+  </footer>`;
+}
+
+function bindTabs(){
+  document.querySelectorAll("[data-tab]").forEach(function(b){
+    b.onclick=function(){ S.tab=b.dataset.tab; $("standings").innerHTML=standings();
+      bindTabs(); bindLinks(); }; });
+}
+
+function bindLinks(){
+  document.querySelectorAll("[data-go]").forEach(function(a){
+    a.onclick=function(){
+      if(a.dataset.go==="driver"){ S.driverId=a.dataset.id; setView("driver"); }
+      else if(a.dataset.go==="circuit"){ S.circuitId=a.dataset.id; setView("circuit"); }
+      else { S.teamId=a.dataset.id; setView("team"); }
+      window.scrollTo(0,0);
+    };
+  });
+}
+
+async function controls(){
+  const c=$("controls");
+  const years=[]; for(let y=new Date().getFullYear();y>=1950;y--) years.push(y);
+
+  if(S.view==="race"){
+    c.innerHTML=`<select id="season">${years.map(y=>
+      `<option value="${y}"${y===S.season?" selected":""}>${y}</option>`).join("")}</select>
+      <select id="round">${S.races.map(r=>
+      `<option value="${r.round}"${+r.round===+S.round?" selected":""}>${r.round}. ${esc(r.raceName)}</option>`).join("")}</select>`;
+    $("season").onchange=async function(){ S.season=+this.value; S.round=1;
+      await loadSeason(); await controls(); await loadRace(); };
+    $("round").onchange=async function(){ S.round=+this.value; await loadRace(); };
+    return;
+  }
+  if(S.view==="learn"){ c.innerHTML=""; return; }
+  if(S.view==="calendar"){
+    c.innerHTML=`<select id="calYear">${years.map(y=>
+      `<option value="${y}"${y===S.calSeason?" selected":""}>${y}</option>`).join("")}</select>`;
+    $("calYear").onchange=function(){ S.calSeason=+this.value; S.calMonth="all"; renderCalendar(); };
+    return;
+  }
+
+  // driver / team / circuit — one picker, every entry in the sport's history
+  const cfg={
+    driver:{list:S.allDrivers, id:"driverId", key:"driverId",
+      label:x=>x.givenName+" "+x.familyName},
+    team:{list:S.allTeams, id:"teamId", key:"constructorId", label:x=>x.name},
+    circuit:{list:S.allCircuits, id:"circuitId", key:"circuitId", label:x=>x.circuitName}
+  }[S.view];
+  if(!cfg||!cfg.list){ c.innerHTML=`<span style="font-size:12px;color:var(--dim)">Loading…</span>`; return; }
+  c.innerHTML=`<select id="who" style="max-width:300px">${cfg.list.map(function(x){
+    const id=x[cfg.key];
+    return `<option value="${esc(id)}"${S[cfg.id]===id?" selected":""}>${esc(cfg.label(x))}</option>`;
+  }).join("")}</select>`;
+  $("who").onchange=function(){
+    S[cfg.id]=this.value;
+    if(S.view==="driver") renderDriver();
+    else if(S.view==="team") renderTeam();
+    else renderCircuit();
+  };
+}
+
+async function loadCatalog(kind){
+  if(kind==="driver"&&!S.allDrivers)
+    S.allDrivers=(await loadAll("/drivers.json","DriverTable","Drivers"))
+      .sort((a,b)=>(a.familyName+a.givenName).localeCompare(b.familyName+b.givenName));
+  if(kind==="team"&&!S.allTeams)
+    S.allTeams=(await loadAll("/constructors.json","ConstructorTable","Constructors"))
+      .sort((a,b)=>a.name.localeCompare(b.name));
+  if(kind==="circuit"&&!S.allCircuits)
+    S.allCircuits=(await loadAll("/circuits.json","CircuitTable","Circuits"))
+      .sort((a,b)=>a.circuitName.localeCompare(b.circuitName));
+}
+
+async function setView(v){
+  S.view=v;
+  document.querySelectorAll("#nav button").forEach(b=>
+    b.setAttribute("aria-current", b.dataset.view===v?"true":"false"));
+  if(v==="race"){ await controls(); renderRace(); return; }
+  if(v==="learn"){ await controls(); renderLearn(); return; }
+  if(v==="calendar"){ if(!S.calSeason) S.calSeason=S.season;
+    await controls(); renderCalendar(); return; }
+
+  $("main").innerHTML=`<div class="empty">Loading the full list…</div>`;
+  await controls();
+  await loadCatalog(v);
+  if(v==="driver"){ if(!S.driverId&&S.allDrivers[0]) S.driverId=S.allDrivers[0].driverId;
+    await controls(); renderDriver(); }
+  else if(v==="circuit"){ if(!S.circuitId&&S.allCircuits[0]) S.circuitId=S.allCircuits[0].circuitId;
+    await controls(); renderCircuit(); }
+  else { if(!S.teamId&&S.allTeams[0]) S.teamId=S.allTeams[0].constructorId;
+    await controls(); renderTeam(); }
+}
+
+async function loadRace(){
+  $("main").innerHTML=`<div class="empty">Loading the race…</div>`;
+  S.stints=null; S.pits=null; S.laps=null; S.sessionKey=null; S.of1drivers=null;
+  const res=await Promise.all([
+    api(`/${S.season}/${S.round}/results.json?limit=100`),
+    api(`/${S.season}/${S.round}/driverStandings.json?limit=100`).catch(()=>null),
+    api(`/${S.season}/${S.round}/constructorStandings.json?limit=100`).catch(()=>null)]);
+  const race=res[0].MRData.RaceTable.Races[0];
+  S.race=race||null; S.results=(race&&race.Results)||[];
+  const sl=d=>d&&d.MRData.StandingsTable.StandingsLists[0];
+  S.drivers=sl(res[1])?sl(res[1]).DriverStandings:null;
+  S.constructors=sl(res[2])?sl(res[2]).ConstructorStandings:null;
+  renderRace();
+}
+
+async function loadSeason(){
+  const d=await api(`/${S.season}.json?limit=100`);
+  S.races=d.MRData.RaceTable.Races||[];
+}
+
+async function boot(){
+  try{
+    const d=await api("/current/last/results.json");
+    const r=d.MRData.RaceTable.Races[0];
+    S.season=parseInt(r.season,10); S.round=parseInt(r.round,10);
+  }catch(e){
+    $("main").innerHTML=`<div class="empty err">Couldn't reach the race data source
+      (api.jolpi.ca). Check your connection and reload.</div>`; return;
+  }
+  S.calSeason=S.season;
+  await loadSeason();
+  document.querySelectorAll("#nav button").forEach(function(b){
+    b.onclick=function(){ setView(b.dataset.view); }; });
+  await controls();
+  await loadRace();
+}
+boot();
+</script>
+</body>
+</html>
