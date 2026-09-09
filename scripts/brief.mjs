@@ -53,7 +53,6 @@ const res = await fetch(
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      tools: [{ google_search: {} }]
     }) });
 
 const data = await res.json();
