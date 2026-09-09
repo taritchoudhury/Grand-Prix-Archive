@@ -15,7 +15,7 @@ jobs:
           node-version: "24"
       - name: Write a brief if a new race has landed
         env:
-          GEMINI_API_KEY: ${{ secrets.F1_CODE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: node scripts/brief.mjs
       - name: Commit it
         run: |
